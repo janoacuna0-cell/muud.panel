@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Muud Panel</title>
+    <!-- Tailwind CSS (CDN) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Supabase JS (CDN) -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+
+    <!-- Configuración de Colores: Bordó y Crema -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        background: '#FAF7F2', /* Crema claro para el fondo */
+                        card: '#FFFFFF',
+                        bordercolor: '#E5DED5',
+                        primary: '#671034', /* Bordó oscuro del logo MUUD */
+                        primaryhover: '#4A0B25',
+                        accent: '#e8a966', /* Naranja durazno del logo */
+                        textmain: '#2D2D2D',
+                        textmuted: '#857D7A'
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        body {
+            background-color: #FAF7F2;
+            color: #2D2D2D;
+            overscroll-behavior-y: none; 
+            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+        
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #E5DED5; }
+        ::-webkit-scrollbar-thumb { background: #671034; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #4A0B25; }
+
+        .hidden-tab { display: none !important; }
+        .icon { width: 20px; height: 20px; display: inline-block; }
+        
+        /* Modal Overlay */
+        #modal-overlay {
+            display: none;
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 50;
+            justify-content: center; align-items: center;
+        }
+    </style>
+</head>
+<body class="flex h-screen overflow-hidden">
+
+    <!-- Sidebar -->
+    <div class="w-64 bg-card border-r border-bordercolor h-full flex flex-col shrink-0 shadow-sm z-10">
+        <!-- Contenedor del Logo -->
+        <div class="p-6 border-b border-bordercolor flex justify-center items-center h-28">
+            <!-- Asume que el logo descargado se llama logo.jpg y está en la misma carpeta -->
+            <img src="logo.jpg" alt="Muud Logo" class="max-h-full object-contain" id="logo-img" onerror="this.style.display='none'; document.getElementById('logo-fallback').style.display='flex';">
+            <h2 id="logo-fallback" class="text-3xl font-black tracking-widest text-primary hidden items-center gap-2">
+                MUUD
+            </h2>
+        </div>
+        
+        <nav class="flex-1 p-4 flex flex-col gap-2 overflow-y-auto">
+            <p class="text-xs font-bold text-textmuted uppercase tracking-widest mb-2 pl-2 mt-2">Pedidos</p>
+            <button onclick="switchTab('nuevos')" id="btn-nuevos" class="nav-btn active flex items-center justify-between px-4 py-3 rounded-lg font-bold transition-colors bg-primary text-white shadow-md text-left">
+                <div class="flex items-center gap-3"><svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>Nuevos</div>
+                <span id="badge-nuevos" class="bg-white text-primary rounded-full px-2 py-0.5 text-xs">0</span>
+            </button>
+
+            <button onclick="switchTab('proceso')" id="btn-proceso" class="nav-btn flex items-center justify-between px-4 py-3 rounded-lg font-bold transition-colors text-textmuted hover:bg-bordercolor hover:text-textmain text-left">
+                <div class="flex items-center gap-3"><svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>En Proceso</div>
+                <span id="badge-proceso" class="bg-bordercolor text-textmain rounded-full px-2 py-0.5 text-xs">0</span>
+            </button>
+
+            <button onclick="switchTab('listos')" id="btn-listos" class="nav-btn flex items-center justify-between px-4 py-3 rounded-lg font-bold transition-colors text-textmuted hover:bg-bordercolor hover:text-textmain text-left">
+                <div class="flex items-center gap-3"><svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>Listos</div>
+                <span id="badge-listos" class="bg-bordercolor text-textmain rounded-full px-2 py-0.5 text-xs">0</span>
+            </button>
+
+            <p class="text-xs font-bold text-textmuted uppercase tracking-widest mb-2 pl-2 mt-6">Administración</p>
+            
+            <button onclick="switchTab('historial')" id="btn-historial" class="nav-btn flex items-center gap-3 px-4 py-3 rounded-lg font-bold transition-colors text-textmuted hover:bg-bordercolor hover:text-textmain text-left">
+                <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                Registros (Caja)
+            </button>
+
+            <button onclick="switchTab('inventario')" id="btn-inventario" class="nav-btn flex items-center gap-3 px-4 py-3 rounded-lg font-bold transition-colors text-textmuted hover:bg-bordercolor hover:text-textmain text-left">
+                <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
+                Catálogo y Stock
+            </button>
+        </nav>
+        
+        <div class="p-4 border-t border-bordercolor text-center text-xs text-emerald-600 font-bold" id="db-status">
+            Conectando a Base de Datos...
+        </div>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <main class="flex-1 overflow-hidden relative bg-background flex flex-col">
+        
+        <!-- HEADER GENERAL (Deshacer) -->
+        <div class="h-20 border-b border-bordercolor bg-card flex justify-between items-center px-8 shrink-0">
+            <div id="topbar-title" class="text-xl font-bold text-textmain">Recepción de Pedidos</div>
+            <button onclick="undoLastAction()" id="btn-undo" class="opacity-50 cursor-not-allowed bg-background border border-bordercolor text-textmain hover:bg-gray-100 font-bold py-2 px-4 rounded-lg flex items-center gap-2 shadow-sm transition-all">
+                <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"></path></svg>
+                Deshacer Acción
+            </button>
+        </div>
+
+        <div class="flex-1 overflow-y-auto p-8 relative">
+            
+            <!-- VISTA: NUEVOS PEDIDOS -->
+            <div id="tab-nuevos" class="tab-content block">
+                <h1 class="text-3xl font-black text-primary mb-6 flex items-center gap-3">
+                    <span class="w-3 h-3 bg-red-500 rounded-full animate-pulse"></span>
+                    Nuevos Pedidos
+                </h1>
+                <div id="grid-nuevos" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"></div>
+                <div id="empty-nuevos" class="hidden text-center py-20 text-textmuted font-medium text-lg">No hay pedidos nuevos por ahora.</div>
+            </div>
+
+            <!-- VISTA: EN PROCESO -->
+            <div id="tab-proceso" class="tab-content hidden-tab">
+                <h1 class="text-3xl font-black text-[#B86B1D] mb-6 flex items-center gap-3">
+                    En Preparación (Cocina)
+                </h1>
+                <div id="grid-proceso" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"></div>
+                <div id="empty-proceso" class="hidden text-center py-20 text-textmuted font-medium text-lg">No hay pedidos preparándose.</div>
+            </div>
+
+            <!-- VISTA: LISTOS -->
+            <div id="tab-listos" class="tab-content hidden-tab">
+                <h1 class="text-3xl font-black text-emerald-600 mb-6 flex items-center gap-3">
+                    Listos para Entrega
+                </h1>
+                <div id="grid-listos" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"></div>
+                <div id="empty-listos" class="hidden text-center py-20 text-textmuted font-medium text-lg">No hay pedidos listos esperando.</div>
+            </div>
+
+            <!-- VISTA: REGISTROS (HISTORIAL) -->
+            <div id="tab-historial" class="tab-content hidden-tab h-full flex flex-col">
+                <div class="flex flex-wrap justify-between items-center mb-6 gap-4">
+                    <h1 class="text-3xl font-black text-primary">Registros y Caja</h1>
+                    
+                    <div class="flex items-center gap-4 bg-white p-2 rounded-lg border border-bordercolor shadow-sm">
+                        <label class="font-bold text-textmuted text-sm ml-2">Filtrar Fecha:</label>
+                        <input type="date" id="history-date" onchange="renderHistory()" class="border border-bordercolor rounded p-2 focus:outline-none focus:border-primary font-mono text-textmain bg-background">
+                    </div>
+                </div>
+
+                <!-- Resumen Financiero -->
+                <div class="bg-primary text-white rounded-xl p-6 shadow-md mb-8 flex justify-between items-center bg-gradient-to-r from-primary to-primaryhover">
+                    <div>
+                        <p class="text-white/80 font-bold uppercase tracking-widest text-sm mb-1">Total Ganancias del Día</p>
+                        <p class="text-5xl font-black" id="history-total">$0</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-white/80 font-medium">Pedidos Completados</p>
+                        <p class="text-2xl font-bold" id="history-count">0</p>
+                    </div>
+                </div>
+
+                <div class="flex-1 bg-white border border-bordercolor rounded-xl shadow-sm overflow-hidden">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-gray-50 border-b border-bordercolor text-textmuted text-sm uppercase tracking-wider">
+                                <th class="p-4 font-bold">Orden #</th>
+                                <th class="p-4 font-bold">Cliente</th>
+                                <th class="p-4 font-bold">Modalidad</th>
+                                <th class="p-4 font-bold">Monto</th>
+                            </tr>
+                        </thead>
+                        <tbody id="history-list" class="divide-y divide-bordercolor">
+                            <!-- JS Injects History -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- VISTA: INVENTARIO -->
+            <div id="tab-inventario" class="tab-content hidden-tab h-full flex flex-col">
+                <div class="flex justify-between items-center mb-6 shrink-0">
+                    <h1 class="text-3xl font-black text-primary">Catálogo y Stock</h1>
+                    <button onclick="openModal()" class="bg-primary hover:bg-primaryhover text-white shadow-md font-bold py-2 px-4 rounded-lg flex items-center gap-2 transition-colors">
+                        <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                        Añadir Producto
+                    </button>
+                </div>
+
+                <div class="flex-1 overflow-auto bg-white border border-bordercolor rounded-xl shadow-sm">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-gray-50 border-b border-bordercolor text-textmuted text-sm uppercase tracking-wider">
+                                <th class="p-4 font-bold">Producto (Carta Web)</th>
+                                <th class="p-4 font-bold">Precio</th>
+                                <th class="p-4 font-bold">Stock Disp.</th>
+                                <th class="p-4 font-bold text-center">Fotos</th>
+                                <th class="p-4 font-bold text-right">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="inventory-list" class="divide-y divide-bordercolor">
+                            <!-- JS Injects Rows Here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Modal Editar / Crear Producto -->
+    <div id="modal-overlay">
+        <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md border border-bordercolor max-h-[90vh] overflow-y-auto">
+            <h3 class="text-2xl font-bold text-primary mb-4" id="modal-title">Editar Producto</h3>
+            <input type="hidden" id="edit-id">
+            
+            <div class="mb-4">
+                <label class="block text-sm font-bold text-textmain mb-1">Nombre del Producto</label>
+                <input type="text" id="edit-name" class="w-full border border-bordercolor rounded-md p-2 focus:outline-none focus:border-primary">
+            </div>
+            
+            <div class="mb-4">
+                <label class="block text-sm font-bold text-textmain mb-1">Precio de Venta ($)</label>
+                <input type="number" id="edit-price" class="w-full border border-bordercolor rounded-md p-2 focus:outline-none focus:border-primary">
+            </div>
+            
+            <div class="mb-4">
+                <label class="block text-sm font-bold text-textmain mb-1">Stock Disponible</label>
+                <input type="number" id="edit-stock" class="w-full border border-bordercolor rounded-md p-2 focus:outline-none focus:border-primary">
+            </div>
+
+            <!-- Hast 2 Fotos -->
+            <div class="mb-2">
+                <label class="block text-sm font-bold text-textmain mb-1">Imagen 1 (Enlace URL)</label>
+                <input type="text" id="edit-img1" placeholder="Ej: https://..." class="w-full border border-bordercolor rounded-md p-2 text-sm focus:outline-none focus:border-primary mb-1">
+            </div>
+            <div class="mb-6">
+                <label class="block text-sm font-bold text-textmain mb-1">Imagen 2 (Enlace URL - Opcional)</label>
+                <input type="text" id="edit-img2" placeholder="Ej: https://..." class="w-full border border-bordercolor rounded-md p-2 text-sm focus:outline-none focus:border-primary mb-1">
+            </div>
+            
+            <div class="flex justify-end gap-3 pt-4 border-t border-bordercolor">
+                <button onclick="closeModal()" class="px-4 py-2 font-bold text-textmuted hover:text-textmain transition-colors">Cancelar</button>
+                <button onclick="saveProduct()" id="btn-save-prod" class="px-4 py-2 bg-primary hover:bg-primaryhover text-white font-bold rounded-lg shadow transition-colors">Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Detalles de Orden -->
+    <div id="modal-order-details" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:60; justify-content:center; align-items:center;">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md border border-bordercolor flex flex-col overflow-hidden max-h-[85vh]">
+            <div class="p-5 border-b border-bordercolor bg-background flex justify-between items-center">
+                <h3 class="text-2xl font-black text-primary" id="detail-title">Detalle</h3>
+                <button onclick="closeOrderModal()" class="text-textmuted hover:text-primary transition-colors">
+                    <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <div class="p-6 overflow-y-auto flex-1">
+                <div class="mb-6 flex justify-between items-center">
+                    <div>
+                        <p class="text-xs font-bold text-textmuted uppercase tracking-widest mb-1">Cliente</p>
+                        <p class="font-black text-xl text-textmain" id="detail-customer">-</p>
+                    </div>
+                    <div id="detail-type-badge"></div>
+                </div>
+                <div class="mb-6">
+                    <p class="text-xs font-bold text-textmuted uppercase tracking-widest mb-3 border-b border-bordercolor pb-2">Artículos del Pedido</p>
+                    <div id="detail-items" class="space-y-2"></div>
+                </div>
+                <div class="bg-gradient-to-r from-primary to-primaryhover text-white p-4 rounded-lg flex justify-between items-center shadow-md">
+                    <span class="font-bold uppercase tracking-widest text-sm text-white/80">Total Cobrado</span>
+                    <span class="font-black text-2xl" id="detail-total">$0</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- LÓGICA JAVASCRIPT CON SUPABASE -->
+    <script>
+        // Capturar errores ocultos de Javascript
+        window.onerror = function(msg) {
+            document.getElementById('db-status').innerText = "❌ Error JS: " + msg;
+            document.getElementById('db-status').className = "p-4 border-t border-bordercolor text-center text-xs text-red-600 font-bold";
+        };
+        window.onunhandledrejection = function(event) {
+            document.getElementById('db-status').innerText = "❌ Error Red/BD: " + (event.reason ? event.reason.message || event.reason : "Desconocido");
+            document.getElementById('db-status').className = "p-4 border-t border-bordercolor text-center text-xs text-red-600 font-bold";
+        };
+
+        // CONFIGURACIÓN SUPABASE
+        const SUPABASE_URL = 'https://kusgnnypqntgflqltlny.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1c2dubnlwcW50Z2ZscWx0bG55Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc0NzEzNzcsImV4cCI6MjA5MzA0NzM3N30.gR4frDbcWIGrhErN4goizazsesR0uaLO3iGHQycXZpc';
+        
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        // Formateador de moneda
+        const formatter = new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 });
+        
+        const todayStr = new Date().toISOString().split('T')[0];
+        document.getElementById('history-date').value = todayStr;
+
+        // ESTADOS
+        let orders = [];
+        let deliveredOrders = [];
+        let products = [];
+        let historyStack = [];
+
+        // --- FETCH INICIAL ---
+        async function fetchProducts() {
+            try {
+                const { data, error } = await supabaseClient.from('products').select('*').order('created_at', { ascending: false });
+                if(error) throw error;
+                if(data) {
+                    products = data.map(p => ({
+                        id: p.id,
+                        name: p.name,
+                        price: p.price,
+                        stock: p.stock,
+                        images: p.image_urls ? p.image_urls.length : 0,
+                        imgUrls: p.image_urls || []
+                    }));
+                    renderInventory();
+                    document.getElementById('db-status').innerText = "🟢 Base de Datos Conectada";
+                    document.getElementById('db-status').className = "p-4 border-t border-bordercolor text-center text-xs text-emerald-600 font-bold";
+                }
+            } catch (err) {
+                document.getElementById('db-status').innerText = "🔴 " + (err.message || "Error al conectar BD (¿Ejecutaste el SQL?)");
+                document.getElementById('db-status').className = "p-4 border-t border-bordercolor text-center text-xs text-red-600 font-bold";
+            }
+        }
+
+        async function fetchOrders() {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('orders')
+                    .select('*, order_items(quantity, notes, variants, products(name))')
+                    .order('created_at', { ascending: true });
+                
+                if(error) throw error;
+                if(data) {
+                    orders = [];
+                    deliveredOrders = [];
+                    
+                    data.forEach(o => {
+                        const formatted = formatOrder(o);
+                        if(o.status === 'delivered') {
+                            deliveredOrders.unshift(formatted);
+                        } else {
+                            orders.push(formatted);
+                        }
+                    });
+                    
+                    renderOrders();
+                    renderHistory();
+                }
+            } catch (err) {
+                document.getElementById('db-status').innerText = "🔴 Error Pedidos: " + (err.message || err);
+                document.getElementById('db-status').className = "p-4 border-t border-bordercolor text-center text-xs text-red-600 font-bold";
+            }
+        }
+
+        function formatOrder(o) {
+            let itemsArr = [];
+            if(o.order_items) {
+                o.order_items.forEach(item => {
+                    const pName = item.products ? item.products.name : 'Producto';
+                    itemsArr.push(`${item.quantity}x ${pName}`);
+                    if(item.variants && item.variants.length > 0) itemsArr.push(...item.variants);
+                    if(item.notes) itemsArr.push(`"${item.notes}"`);
+                });
+            }
+            const timeStr = new Date(o.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            return {
+                dbId: o.id,
+                id: o.order_number || o.id.substring(0,6),
+                name: o.customer_name,
+                items: itemsArr.length ? itemsArr : ['Sin items detallados'],
+                status: o.status,
+                time: timeStr,
+                type: o.type || 'Local',
+                table: o.table_number,
+                total: o.total_amount,
+                date: new Date(o.created_at).toLocaleDateString('en-CA')
+            };
+        }
+
+        // --- TIEMPO REAL ---
+        supabaseClient.channel('public:orders')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, payload => { fetchOrders(); })
+            .subscribe();
+
+        supabaseClient.channel('public:products')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, payload => { fetchProducts(); })
+            .subscribe();
+
+
+        // --- NAVEGACIÓN ---
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden-tab'));
+            const btnInactivo = "nav-btn flex items-center justify-between px-4 py-3 rounded-lg font-bold transition-colors text-textmuted hover:bg-bordercolor hover:text-textmain text-left";
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.className = btnInactivo;
+                // Si el botón tiene un badge, ponerlo gris
+                const badge = btn.querySelector('span[id^="badge-"]');
+                if(badge) badge.className = "bg-bordercolor text-textmain rounded-full px-2 py-0.5 text-xs";
+            });
+
+            document.getElementById('tab-' + tabName).classList.remove('hidden-tab');
+            const btnActivo = "nav-btn active flex items-center justify-between px-4 py-3 rounded-lg font-bold transition-colors bg-primary text-white shadow-md text-left";
+            const activeBtn = document.getElementById('btn-' + tabName);
+            activeBtn.className = btnActivo;
+            
+            // Poner el badge blanco si está activo
+            const activeBadge = activeBtn.querySelector('span[id^="badge-"]');
+            if(activeBadge) activeBadge.className = "bg-white text-primary rounded-full px-2 py-0.5 text-xs font-black shadow-sm";
+
+            const titles = {
+                'nuevos': 'Recepción de Pedidos',
+                'proceso': 'Cocina / Preparación',
+                'listos': 'Mostrador de Entrega',
+                'historial': 'Administración',
+                'inventario': 'Administración'
+            };
+            document.getElementById('topbar-title').innerText = titles[tabName] || 'MUUD';
+            
+            if(tabName === 'historial') renderHistory();
+        }
+
+        function getOrderBadgeHtml(order) {
+            if(order.type === 'Take Away') {
+                return `<span class="bg-blue-100 text-blue-800 font-bold px-3 py-1.5 rounded text-sm border border-blue-200 flex items-center gap-1.5 shadow-sm">🛍️ Take Away</span>`;
+            } else {
+                return `<span class="bg-purple-100 text-purple-800 font-bold px-3 py-1.5 rounded text-sm border border-purple-200 flex items-center gap-1.5 shadow-sm">🍽️ Local (Mesa ${order.table || '?'})</span>`;
+            }
+        }
+
+        // --- KANBAN BOARD ---
+        function renderOrders() {
+            const containers = {
+                'pending': document.getElementById('grid-nuevos'),
+                'preparing': document.getElementById('grid-proceso'),
+                'ready': document.getElementById('grid-listos')
+            };
+            
+            Object.values(containers).forEach(c => c.innerHTML = '');
+            let counts = { pending: 0, preparing: 0, ready: 0 };
+
+            orders.forEach(order => {
+                counts[order.status]++;
+                
+                let btnText = '', btnClass = '', nextStatus = '';
+                
+                if(order.status === 'pending') {
+                    btnText = 'Empezar a Preparar';
+                    btnClass = 'bg-primary hover:bg-primaryhover text-white';
+                    nextStatus = 'preparing';
+                } else if(order.status === 'preparing') {
+                    btnText = 'Marcar Listo';
+                    btnClass = 'bg-[#B86B1D] hover:bg-[#965615] text-white';
+                    nextStatus = 'ready';
+                } else if(order.status === 'ready') {
+                    btnText = 'Entregar al Cliente';
+                    btnClass = 'bg-emerald-600 hover:bg-emerald-700 text-white';
+                    nextStatus = 'delivered';
+                }
+
+                const itemsHtml = order.items.map((item, index) => {
+                    if(index === 0 || item.includes('x ')) return `<p class="font-bold text-textmain text-lg mt-2 leading-tight">${item}</p>`;
+                    return `<p class="text-sm text-textmuted ml-2 border-l-2 border-bordercolor pl-2 italic mt-1">- ${item}</p>`;
+                }).join('');
+
+                const cardHtml = `
+                    <div class="bg-white border-2 border-bordercolor rounded-xl p-5 shadow-sm flex flex-col justify-between hover:border-primary/50 transition-colors h-full">
+                        <div>
+                            <div class="flex justify-between items-start mb-4 border-b border-bordercolor pb-4">
+                                <div class="flex flex-col">
+                                    <span class="text-primary font-black text-3xl">#${order.id}</span>
+                                    <span class="text-textmuted font-bold text-sm mt-1 flex items-center gap-1">⌚ ${order.time}</span>
+                                </div>
+                                <div class="flex flex-col items-end gap-2">
+                                    ${getOrderBadgeHtml(order)}
+                                </div>
+                            </div>
+                            <div class="mb-4 bg-background p-3 rounded-lg border border-bordercolor">
+                                <p class="text-textmuted text-xs uppercase tracking-widest font-bold mb-1">Para el cliente:</p>
+                                <p class="text-textmain font-black text-xl truncate">${order.name}</p>
+                            </div>
+                            <div class="mb-6">
+                                ${itemsHtml}
+                            </div>
+                        </div>
+                        <button onclick="moveOrder('${order.dbId}', '${nextStatus}')" class="w-full ${btnClass} rounded-lg py-4 font-bold uppercase transition-colors shadow-sm text-lg mt-auto">
+                            ${btnText}
+                        </button>
+                    </div>
+                `;
+                containers[order.status].innerHTML += cardHtml;
+            });
+
+            document.getElementById('badge-nuevos').innerText = counts.pending;
+            document.getElementById('badge-proceso').innerText = counts.preparing;
+            document.getElementById('badge-listos').innerText = counts.ready;
+            
+            document.getElementById('empty-nuevos').style.display = counts.pending === 0 ? 'block' : 'none';
+            document.getElementById('empty-proceso').style.display = counts.preparing === 0 ? 'block' : 'none';
+            document.getElementById('empty-listos').style.display = counts.ready === 0 ? 'block' : 'none';
+            
+            const btnUndo = document.getElementById('btn-undo');
+            if(historyStack.length > 0) {
+                btnUndo.classList.remove('opacity-50', 'cursor-not-allowed', 'bg-background');
+                btnUndo.classList.add('hover:bg-gray-100', 'text-primary', 'bg-white');
+            } else {
+                btnUndo.classList.add('opacity-50', 'cursor-not-allowed', 'bg-background');
+                btnUndo.classList.remove('hover:bg-gray-100', 'text-primary', 'bg-white');
+            }
+        }
+
+        async function moveOrder(dbId, nextStatus) {
+            // Optimistic local update
+            const orderIndex = orders.findIndex(o => o.dbId === dbId);
+            if(orderIndex !== -1) {
+                historyStack.push({ dbId: dbId, previousStatus: orders[orderIndex].status });
+            }
+            
+            // Supabase update
+            const { error } = await supabaseClient.from('orders').update({ status: nextStatus }).eq('id', dbId);
+            if(error) alert("Error al actualizar estado en la base de datos.");
+            // La UI se actualiza sola por el Realtime (fetchOrders)
+        }
+
+        async function undoLastAction() {
+            if(historyStack.length === 0) return;
+            const lastAction = historyStack.pop();
+            const { error } = await supabaseClient.from('orders').update({ status: lastAction.previousStatus }).eq('id', lastAction.dbId);
+            if(error) alert("Error al deshacer.");
+        }
+
+        function viewOrderDetails(dbId) {
+            const order = deliveredOrders.find(o => o.dbId === dbId);
+            if(!order) return;
+            
+            document.getElementById('detail-title').innerText = 'Orden #' + order.id;
+            document.getElementById('detail-customer').innerText = order.name;
+            document.getElementById('detail-type-badge').innerHTML = getOrderBadgeHtml(order);
+            document.getElementById('detail-total').innerText = formatter.format(order.total);
+            
+            const itemsHtml = order.items.map((item, index) => {
+                if(index === 0 || item.includes('x ')) return `<p class="font-bold text-textmain text-lg">${item}</p>`;
+                return `<p class="text-sm text-textmuted ml-2 border-l-2 border-bordercolor pl-2 italic">- ${item}</p>`;
+            }).join('');
+            
+            document.getElementById('detail-items').innerHTML = itemsHtml;
+            document.getElementById('modal-order-details').style.display = 'flex';
+        }
+
+        function closeOrderModal() {
+            document.getElementById('modal-order-details').style.display = 'none';
+        }
+
+        // --- HISTORIAL ---
+        function renderHistory() {
+            const dateFilter = document.getElementById('history-date').value;
+            const tbody = document.getElementById('history-list');
+            tbody.innerHTML = '';
+            
+            let total = 0;
+            let count = 0;
+
+            deliveredOrders.filter(o => o.date === dateFilter).forEach(order => {
+                total += order.total;
+                count++;
+                
+                const typeHtml = order.type === 'Take Away' 
+                    ? `<span class="text-blue-600 font-bold text-sm">🛍️ Take Away</span>` 
+                    : `<span class="text-purple-600 font-bold text-sm">🍽️ Mesa ${order.table || '?'}</span>`;
+
+                tbody.innerHTML += `
+                    <tr class="hover:bg-gray-50 transition-colors cursor-pointer group" onclick="viewOrderDetails('${order.dbId}')">
+                        <td class="p-4 font-black text-primary">#${order.id}</td>
+                        <td class="p-4 font-bold text-textmain">${order.name}</td>
+                        <td class="p-4">${typeHtml}</td>
+                        <td class="p-4 font-black text-textmain text-lg flex items-center justify-between">
+                            ${formatter.format(order.total)}
+                            <button class="px-3 py-1 bg-white border border-bordercolor rounded text-textmuted text-xs font-bold group-hover:bg-gray-100 group-hover:text-primary transition-colors ml-4 shadow-sm">Ver Detalle</button>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            if(count === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" class="p-8 text-center text-textmuted">No hay pedidos registrados en esta fecha.</td></tr>`;
+            }
+
+            document.getElementById('history-total').innerText = formatter.format(total);
+            document.getElementById('history-count').innerText = count;
+        }
+
+        // --- INVENTARIO Y MODAL ---
+        function renderInventory() {
+            const tbody = document.getElementById('inventory-list');
+            tbody.innerHTML = '';
+            
+            products.forEach(product => {
+                let stockClass = product.stock > 10 ? 'bg-emerald-100 text-emerald-700' : 
+                                 product.stock > 0 ? 'bg-amber-100 text-amber-700' : 
+                                 'bg-red-100 text-red-700';
+
+                tbody.innerHTML += `
+                    <tr class="hover:bg-gray-50 transition-colors">
+                        <td class="p-4 font-bold text-textmain">${product.name}</td>
+                        <td class="p-4 text-textmuted font-mono text-lg">${formatter.format(product.price)}</td>
+                        <td class="p-4">
+                            <span class="font-mono font-bold px-3 py-1 rounded-md text-sm border border-transparent ${stockClass}">
+                                ${product.stock} un.
+                            </span>
+                        </td>
+                        <td class="p-4 text-center text-textmuted font-bold text-sm">
+                            ${product.images} / 2
+                        </td>
+                        <td class="p-4 text-right">
+                            <button onclick="editProduct('${product.id}')" class="px-5 py-2 bg-white border border-bordercolor hover:bg-gray-100 rounded-lg text-textmain font-bold shadow-sm transition-colors text-sm">
+                                Editar
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        function editProduct(id) {
+            const product = products.find(p => p.id === id);
+            if(!product) return;
+            
+            document.getElementById('edit-id').value = product.id;
+            document.getElementById('edit-name').value = product.name;
+            document.getElementById('edit-price').value = product.price;
+            document.getElementById('edit-stock').value = product.stock;
+            document.getElementById('edit-img1').value = product.imgUrls[0] || '';
+            document.getElementById('edit-img2').value = product.imgUrls[1] || '';
+            
+            document.getElementById('modal-title').innerText = "Editar Producto";
+            document.getElementById('modal-overlay').style.display = 'flex';
+        }
+
+        function openModal() {
+            document.getElementById('edit-id').value = '';
+            document.getElementById('edit-name').value = '';
+            document.getElementById('edit-price').value = '';
+            document.getElementById('edit-stock').value = '10'; 
+            document.getElementById('edit-img1').value = '';
+            document.getElementById('edit-img2').value = '';
+            
+            document.getElementById('modal-title').innerText = "Nuevo Producto";
+            document.getElementById('modal-overlay').style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('modal-overlay').style.display = 'none';
+        }
+
+        async function saveProduct() {
+            const id = document.getElementById('edit-id').value;
+            const name = document.getElementById('edit-name').value;
+            const price = parseFloat(document.getElementById('edit-price').value);
+            const stock = parseInt(document.getElementById('edit-stock').value);
+            const img1 = document.getElementById('edit-img1').value.trim();
+            const img2 = document.getElementById('edit-img2').value.trim();
+            
+            let imgUrls = [];
+            if(img1) imgUrls.push(img1);
+            if(img2) imgUrls.push(img2);
+
+            if(!name || isNaN(price) || isNaN(stock)) {
+                alert("Por favor completa los datos básicos correctamente.");
+                return;
+            }
+
+            const btn = document.getElementById('btn-save-prod');
+            btn.innerText = "Guardando...";
+            btn.disabled = true;
+
+            if(id) { 
+                const { error } = await supabaseClient.from('products').update({ name, price, stock, image_urls: imgUrls }).eq('id', id);
+                if(error) alert("Error actualizando producto: " + error.message);
+            } else { 
+                const { error } = await supabaseClient.from('products').insert([{ name, price, stock, image_urls: imgUrls }]);
+                if(error) alert("Error creando producto: " + error.message);
+            }
+
+            btn.innerText = "Guardar";
+            btn.disabled = false;
+            closeModal();
+            // La lista se actualiza sola por el Realtime
+        }
+
+        // --- ARRANQUE APP ---
+        fetchProducts();
+        fetchOrders();
+
+    </script>
+</body>
+</html>
