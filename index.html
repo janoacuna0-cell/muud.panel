@@ -814,7 +814,11 @@
         async function deleteProduct(id) {
             if(!confirm("¿Estás seguro de que quieres borrar este producto? Esto no se puede deshacer.")) return;
             const { error } = await supabaseClient.from('products').delete().eq('id', id);
-            if(error) alert("Error borrando producto: " + error.message);
+            if(error) {
+                alert("Error borrando producto: " + error.message);
+            } else {
+                fetchProducts(); // Forzar actualización visual
+            }
         }
 
         // --- ARRANQUE APP ---
