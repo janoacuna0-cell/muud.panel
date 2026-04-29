@@ -201,6 +201,7 @@
                         <thead>
                             <tr class="bg-gray-50 border-b border-bordercolor text-textmuted text-sm uppercase tracking-wider">
                                 <th class="p-4 font-bold">Producto (Carta Web)</th>
+                                <th class="p-4 font-bold">Categoría</th>
                                 <th class="p-4 font-bold">Precio</th>
                                 <th class="p-4 font-bold">Stock Disp.</th>
                                 <th class="p-4 font-bold text-center">Fotos</th>
@@ -226,6 +227,17 @@
             <div class="mb-4">
                 <label class="block text-sm font-bold text-textmain mb-1">Nombre del Producto</label>
                 <input type="text" id="edit-name" class="w-full border border-bordercolor rounded-md p-2 focus:outline-none focus:border-primary">
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-sm font-bold text-textmain mb-1">Categoría</label>
+                <select id="edit-category" class="w-full border border-bordercolor rounded-md p-2 focus:outline-none focus:border-primary">
+                    <option value="Cafetería">Cafetería</option>
+                    <option value="Pastelería">Pastelería</option>
+                    <option value="Almuerzos">Almuerzos</option>
+                    <option value="Bebidas">Bebidas Frías</option>
+                    <option value="Otros">Otros</option>
+                </select>
             </div>
             
             <div class="mb-4">
@@ -323,6 +335,7 @@
                     products = data.map(p => ({
                         id: p.id,
                         name: p.name,
+                        category: p.category || 'Sin categoría',
                         price: p.price,
                         stock: p.stock,
                         images: p.image_urls ? p.image_urls.length : 0,
@@ -617,6 +630,7 @@
                 tbody.innerHTML += `
                     <tr class="hover:bg-gray-50 transition-colors">
                         <td class="p-4 font-bold text-textmain">${product.name}</td>
+                        <td class="p-4 text-textmuted font-medium">${product.category}</td>
                         <td class="p-4 text-textmuted font-mono text-lg">${formatter.format(product.price)}</td>
                         <td class="p-4">
                             <span class="font-mono font-bold px-3 py-1 rounded-md text-sm border border-transparent ${stockClass}">
@@ -642,6 +656,7 @@
             
             document.getElementById('edit-id').value = product.id;
             document.getElementById('edit-name').value = product.name;
+            document.getElementById('edit-category').value = product.category === 'Sin categoría' ? 'Cafetería' : product.category;
             document.getElementById('edit-price').value = product.price;
             document.getElementById('edit-stock').value = product.stock;
             document.getElementById('edit-img1').value = product.imgUrls[0] || '';
@@ -654,6 +669,7 @@
         function openModal() {
             document.getElementById('edit-id').value = '';
             document.getElementById('edit-name').value = '';
+            document.getElementById('edit-category').value = 'Cafetería';
             document.getElementById('edit-price').value = '';
             document.getElementById('edit-stock').value = '10'; 
             document.getElementById('edit-img1').value = '';
@@ -670,6 +686,7 @@
         async function saveProduct() {
             const id = document.getElementById('edit-id').value;
             const name = document.getElementById('edit-name').value;
+            const category = document.getElementById('edit-category').value;
             const price = parseFloat(document.getElementById('edit-price').value);
             const stock = parseInt(document.getElementById('edit-stock').value);
             const img1 = document.getElementById('edit-img1').value.trim();
@@ -689,10 +706,10 @@
             btn.disabled = true;
 
             if(id) { 
-                const { error } = await supabaseClient.from('products').update({ name, price, stock, image_urls: imgUrls }).eq('id', id);
+                const { error } = await supabaseClient.from('products').update({ name, category, price, stock, image_urls: imgUrls }).eq('id', id);
                 if(error) alert("Error actualizando producto: " + error.message);
             } else { 
-                const { error } = await supabaseClient.from('products').insert([{ name, price, stock, image_urls: imgUrls }]);
+                const { error } = await supabaseClient.from('products').insert([{ name, category, price, stock, image_urls: imgUrls }]);
                 if(error) alert("Error creando producto: " + error.message);
             }
 
