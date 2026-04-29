@@ -250,14 +250,27 @@
                 <input type="number" id="edit-stock" class="w-full border border-bordercolor rounded-md p-2 focus:outline-none focus:border-primary">
             </div>
 
-            <!-- Hast 2 Fotos -->
-            <div class="mb-2">
-                <label class="block text-sm font-bold text-textmain mb-1">Imagen 1 (Enlace URL)</label>
-                <input type="text" id="edit-img1" placeholder="Ej: https://..." class="w-full border border-bordercolor rounded-md p-2 text-sm focus:outline-none focus:border-primary mb-1">
-            </div>
+            <!-- Hasta 2 Fotos (Subida directa) -->
             <div class="mb-6">
-                <label class="block text-sm font-bold text-textmain mb-1">Imagen 2 (Enlace URL - Opcional)</label>
-                <input type="text" id="edit-img2" placeholder="Ej: https://..." class="w-full border border-bordercolor rounded-md p-2 text-sm focus:outline-none focus:border-primary mb-1">
+                <label class="block text-sm font-bold text-textmain mb-2">Imágenes (Subir foto)</label>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="border-2 border-dashed border-bordercolor rounded-lg p-2 flex flex-col items-center justify-center relative overflow-hidden h-32 hover:border-primary transition-colors cursor-pointer bg-gray-50" onclick="document.getElementById('edit-img1').click()">
+                        <input type="file" id="edit-img1" accept="image/*" class="hidden" onchange="previewImage(this, 'preview1')">
+                        <img id="preview1" class="absolute inset-0 w-full h-full object-cover hidden">
+                        <div id="placeholder1" class="text-center z-10 pointer-events-none">
+                            <svg class="icon mx-auto text-textmuted mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                            <span class="text-xs text-textmuted font-bold block">Principal</span>
+                        </div>
+                    </div>
+                    <div class="border-2 border-dashed border-bordercolor rounded-lg p-2 flex flex-col items-center justify-center relative overflow-hidden h-32 hover:border-primary transition-colors cursor-pointer bg-gray-50" onclick="document.getElementById('edit-img2').click()">
+                        <input type="file" id="edit-img2" accept="image/*" class="hidden" onchange="previewImage(this, 'preview2')">
+                        <img id="preview2" class="absolute inset-0 w-full h-full object-cover hidden">
+                        <div id="placeholder2" class="text-center z-10 pointer-events-none">
+                            <svg class="icon mx-auto text-textmuted mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                            <span class="text-xs text-textmuted font-bold block">Opcional</span>
+                        </div>
+                    </div>
+                </div>
             </div>
             
             <div class="flex justify-end gap-3 pt-4 border-t border-bordercolor">
@@ -640,14 +653,34 @@
                         <td class="p-4 text-center text-textmuted font-bold text-sm">
                             ${product.images} / 2
                         </td>
-                        <td class="p-4 text-right">
+                        <td class="p-4 text-right flex justify-end gap-2">
                             <button onclick="editProduct('${product.id}')" class="px-5 py-2 bg-white border border-bordercolor hover:bg-gray-100 rounded-lg text-textmain font-bold shadow-sm transition-colors text-sm">
                                 Editar
+                            </button>
+                            <button onclick="deleteProduct('${product.id}')" class="px-5 py-2 bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 rounded-lg font-bold shadow-sm transition-colors text-sm">
+                                Borrar
                             </button>
                         </td>
                     </tr>
                 `;
             });
+        }
+
+        let oldImg1 = '';
+        let oldImg2 = '';
+
+        function previewImage(input, previewId) {
+            const preview = document.getElementById(previewId);
+            const placeholder = document.getElementById('placeholder' + previewId.replace('preview', ''));
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    preview.src = e.target.result;
+                    preview.classList.remove('hidden');
+                    placeholder.classList.add('hidden');
+                }
+                reader.readAsDataURL(input.files[0]);
+            }
         }
 
         function editProduct(id) {
@@ -659,8 +692,29 @@
             document.getElementById('edit-category').value = product.category === 'Sin categoría' ? 'Cafetería' : product.category;
             document.getElementById('edit-price').value = product.price;
             document.getElementById('edit-stock').value = product.stock;
-            document.getElementById('edit-img1').value = product.imgUrls[0] || '';
-            document.getElementById('edit-img2').value = product.imgUrls[1] || '';
+            document.getElementById('edit-img1').value = '';
+            document.getElementById('edit-img2').value = '';
+            
+            oldImg1 = product.imgUrls[0] || '';
+            oldImg2 = product.imgUrls[1] || '';
+
+            if (oldImg1) {
+                document.getElementById('preview1').src = oldImg1;
+                document.getElementById('preview1').classList.remove('hidden');
+                document.getElementById('placeholder1').classList.add('hidden');
+            } else {
+                document.getElementById('preview1').classList.add('hidden');
+                document.getElementById('placeholder1').classList.remove('hidden');
+            }
+
+            if (oldImg2) {
+                document.getElementById('preview2').src = oldImg2;
+                document.getElementById('preview2').classList.remove('hidden');
+                document.getElementById('placeholder2').classList.add('hidden');
+            } else {
+                document.getElementById('preview2').classList.add('hidden');
+                document.getElementById('placeholder2').classList.remove('hidden');
+            }
             
             document.getElementById('modal-title').innerText = "Editar Producto";
             document.getElementById('modal-overlay').style.display = 'flex';
@@ -674,6 +728,14 @@
             document.getElementById('edit-stock').value = '10'; 
             document.getElementById('edit-img1').value = '';
             document.getElementById('edit-img2').value = '';
+            document.getElementById('preview1').classList.add('hidden');
+            document.getElementById('preview2').classList.add('hidden');
+            document.getElementById('placeholder1').classList.remove('hidden');
+            document.getElementById('placeholder2').classList.remove('hidden');
+            document.getElementById('preview1').src = '';
+            document.getElementById('preview2').src = '';
+            oldImg1 = '';
+            oldImg2 = '';
             
             document.getElementById('modal-title').innerText = "Nuevo Producto";
             document.getElementById('modal-overlay').style.display = 'flex';
@@ -683,18 +745,25 @@
             document.getElementById('modal-overlay').style.display = 'none';
         }
 
+        async function uploadImage(file) {
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${Math.random().toString(36).substring(2)}_${Date.now()}.${fileExt}`;
+            
+            const { error: uploadError } = await supabaseClient.storage.from('products').upload(fileName, file);
+            if (uploadError) throw uploadError;
+            
+            const { data } = supabaseClient.storage.from('products').getPublicUrl(fileName);
+            return data.publicUrl;
+        }
+
         async function saveProduct() {
             const id = document.getElementById('edit-id').value;
             const name = document.getElementById('edit-name').value;
             const category = document.getElementById('edit-category').value;
             const price = parseFloat(document.getElementById('edit-price').value);
             const stock = parseInt(document.getElementById('edit-stock').value);
-            const img1 = document.getElementById('edit-img1').value.trim();
-            const img2 = document.getElementById('edit-img2').value.trim();
-            
-            let imgUrls = [];
-            if(img1) imgUrls.push(img1);
-            if(img2) imgUrls.push(img2);
+            const img1File = document.getElementById('edit-img1').files[0];
+            const img2File = document.getElementById('edit-img2').files[0];
 
             if(!name || isNaN(price) || isNaN(stock)) {
                 alert("Por favor completa los datos básicos correctamente.");
@@ -705,18 +774,47 @@
             btn.innerText = "Guardando...";
             btn.disabled = true;
 
-            if(id) { 
-                const { error } = await supabaseClient.from('products').update({ name, category, price, stock, image_urls: imgUrls }).eq('id', id);
-                if(error) alert("Error actualizando producto: " + error.message);
-            } else { 
-                const { error } = await supabaseClient.from('products').insert([{ name, category, price, stock, image_urls: imgUrls }]);
-                if(error) alert("Error creando producto: " + error.message);
-            }
+            try {
+                let img1Url = oldImg1;
+                let img2Url = oldImg2;
 
-            btn.innerText = "Guardar";
-            btn.disabled = false;
-            closeModal();
-            // La lista se actualiza sola por el Realtime
+                if (img1File) {
+                    btn.innerText = "Subiendo fotos...";
+                    img1Url = await uploadImage(img1File);
+                }
+                if (img2File) {
+                    btn.innerText = "Subiendo fotos...";
+                    img2Url = await uploadImage(img2File);
+                }
+
+                let imgUrls = [];
+                if(img1Url) imgUrls.push(img1Url);
+                if(img2Url) imgUrls.push(img2Url);
+
+                btn.innerText = "Actualizando catálogo...";
+
+                if(id) { 
+                    const { error } = await supabaseClient.from('products').update({ name, category, price, stock, image_urls: imgUrls }).eq('id', id);
+                    if(error) throw error;
+                } else { 
+                    const { error } = await supabaseClient.from('products').insert([{ name, category, price, stock, image_urls: imgUrls }]);
+                    if(error) throw error;
+                }
+
+                btn.innerText = "Guardar";
+                btn.disabled = false;
+                closeModal();
+            } catch (err) {
+                alert("Error al guardar el producto o subir la imagen: " + err.message);
+                btn.innerText = "Guardar";
+                btn.disabled = false;
+            }
+        }
+
+        async function deleteProduct(id) {
+            if(!confirm("¿Estás seguro de que quieres borrar este producto? Esto no se puede deshacer.")) return;
+            const { error } = await supabaseClient.from('products').delete().eq('id', id);
+            if(error) alert("Error borrando producto: " + error.message);
         }
 
         // --- ARRANQUE APP ---
